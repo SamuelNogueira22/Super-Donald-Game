@@ -1,6 +1,3 @@
-senha vboxuser: vboxuser
+Projeto de jogo para Algoritmos e Estruturas de dados baseado no Super Mário
 
-senha ubuntu: 1234
-
-
-
+created by Samuel Nogueira
