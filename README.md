@@ -1,6 +1,6 @@
-Projeto de jogo para Algoritmos e Estruturas de dados baseado no Super Mário
+senha vboxuser: vboxuser
+
+senha ubuntu: 1234
 
 
-
-created by Samuel Nogueira
 

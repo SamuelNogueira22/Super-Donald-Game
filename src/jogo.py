@@ -57,7 +57,13 @@ class Jogo:
     def draw(self):
         pyxel.cls(12)#Define cor de Fundo azul
         pyxel.bltm(0, 245, 0, 0, 0, 256, 256)#É o que pega meus desenhos do Painel de edição do pyxel
-        pyxel.blt(self.jogador_x, self.jogador_y, 0, 0, 40, 16, 24, 0)#Pega o personagem do painel do pyxel
+        pyxel.bltm(120, 120, 0, 0, 24, 16, 16, 0)
+        pyxel.blt(120, 160, 0, 16, 24, 16, 16, 0)#nuvem normal
+        pyxel.blt(310, 200, 0, 16, 24, 16, 16, 0)#nuvem normal
+        pyxel.blt(120, 160, 0, 32, 24, 16, 16, 0)#nuvem fofa
+        # Desenha o sprite do pato novo (que está em u=24, v=32 e tem tamanho 16x16)
+        pyxel.blt(self.jogador_x, self.jogador_y, 0, 24, 32, 16, 16, 0)
+
 
 # Inicia o jogo
 Jogo()
