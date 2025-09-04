@@ -55,15 +55,24 @@ class Jogo:
             self.esta_no_chao = False
 
     def draw(self):
-        pyxel.cls(12)#Define cor de Fundo azul
-        pyxel.bltm(0, 245, 0, 0, 0, 256, 256)#É o que pega meus desenhos do Painel de edição do pyxel
-        pyxel.bltm(120, 120, 0, 0, 24, 16, 16, 0)
-        pyxel.blt(120, 160, 0, 16, 24, 16, 16, 0)#nuvem normal
-        pyxel.blt(310, 200, 0, 16, 24, 16, 16, 0)#nuvem normal
-        pyxel.blt(120, 160, 0, 32, 24, 16, 16, 0)#nuvem fofa
-        # Desenha o sprite do pato novo (que está em u=24, v=32 e tem tamanho 16x16)
-        pyxel.blt(self.jogador_x, self.jogador_y, 0, 24, 32, 16, 16, 0)
+        # 1. Limpa a tela e desenha o céu azul
+        pyxel.cls(12)
 
+        # 2. Desenha os elementos do CÉU primeiro
+        #    Usei as coordenadas que você colocou.
+        
+        # SOL 
+        pyxel.bltm(120, 30, 0, 0, 128, 64, 64)
+        
+        # NUVENS
+        pyxel.bltm(40, 50, 0, 64, 192, 64, 64)
+        #pyxel.blt(180, 65, 0, 48, 32, 24, 16)
+        # 3. Desenha o CHÃO por cima do céu, mas atrás do jogador
+        pyxel.bltm(0, 245, 0, 0, 0, 256, 256)
+
+        # 4. Desenha o JOGADOR na frente de tudo
+        pyxel.blt(self.jogador_x, self.jogador_y, 0, 8, 16, 16, 16)
+        #pyxel.bltm(self.jogador_x, self.jogador_y, 0, 128, 128, 128, 64)
 
 # Inicia o jogo
 Jogo()
