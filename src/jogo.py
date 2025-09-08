@@ -2,6 +2,7 @@
 #''''''''Created by Samuel Nogueira''''''''
 
 import pyxel
+import random
 
 class Jogo:
     def __init__(self):
@@ -19,8 +20,11 @@ class Jogo:
         self.jogador_vy = 0  # Velocidade vertical (vy)
         self.esta_no_chao = False
 
+        pyxel.playm(0, loop=True)  # toca a música 0 em loop infinito
+        
         pyxel.run(self.update, self.draw)
-
+    
+        
     def update(self):
         # --- Configurações de movimentos ---
         velocidade_h = 2
@@ -59,7 +63,6 @@ class Jogo:
         pyxel.cls(12)
 
         # 2. Desenha os elementos do CÉU primeiro
-        #    Usei as coordenadas que você colocou.
         
         # SOL 
         pyxel.bltm(120, 30, 0, 0, 128, 64, 64)
@@ -69,10 +72,10 @@ class Jogo:
         #pyxel.blt(180, 65, 0, 48, 32, 24, 16)
         # 3. Desenha o CHÃO por cima do céu, mas atrás do jogador
         pyxel.bltm(0, 245, 0, 0, 0, 256, 256)
-
+        pyxel.bltm(60, 120, 0, 256, 128, 256, 256,0)
         # 4. Desenha o JOGADOR na frente de tudo
         pyxel.blt(self.jogador_x, self.jogador_y, 0, 8, 16, 16, 16)
         #pyxel.bltm(self.jogador_x, self.jogador_y, 0, 128, 128, 128, 64)
-
+    
 # Inicia o jogo
 Jogo()
