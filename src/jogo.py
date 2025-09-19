@@ -3,12 +3,18 @@
 
 import pyxel
 
+# Configurações
+TILE_SIZE = 8       # cada tile tem 8 pixels
+FASE_SIZE = 32      # sala tem 32 tiles de lado
+FASE_PIXELS = FASE_SIZE * TILE_SIZE
+
 class Jogo:
     def __init__(self):
         # Inicialização do Pyxel
         
         pyxel.init(256, 256, title="Mario Adventures", fps=60)
         pyxel.load("../assets/jogo.pyxres")
+        self.fase = 0
 
         # Posição e física
         
@@ -169,17 +175,34 @@ class Jogo:
         # Atualiza o estado anterior da tecla de pulo
         self.jump_key_prev = jump_now
         
-        # Atualiza posição da câmera tile-a-tile (só muda quando jogador cruza borda da tela)
-        self.camera_x = int(self.jogador_x // pyxel.width) * pyxel.width
-        self.camera_y = int(self.jogador_y // pyxel.height) * pyxel.height
+
+    def desenha_cenario(self):
+
+        # Descobre a fase do jogador e ajusta a posição
+        if self.jogador_x > 256: 
+            self.fase  = self.fase + 1 # Aumenta a fase
+            self.jogador_x = 0  # Volta o personagem para a esquerda da tela
+        
+        x = 0
+        y = 128
+        tilemap = 0
+        u = self.fase * 256 # Cada fase tem 256 de largura no tilemap
+        v = 0
+        largura = 256
+        altura = 256
+
+
+        pyxel.bltm(x,y,tilemap,u,v,largura,altura) #desenha cenário
+        #print     (x,y,tilemap,u,v,largura,altura)
+        #print(u)
         
     
     def draw(self):
         pyxel.cls(2) #Faz o background ser roxo
-        pyxel.camera(self.camera_x, self.camera_y)
-        pyxel.bltm(0, 128, 0, 0, 0, 256, 256) #desenha cenário
-        pyxel.blt(int(self.jogador_x), int(self.jogador_y), 0, 8, 16, 16, 16, 2) #desenha o mário e atualiza ele com base na câmera
 
+        self.desenha_cenario()
+
+        pyxel.blt(int(self.jogador_x), int(self.jogador_y), 0, 8, 16, 16, 16, 2) #desenha o mário e atualiza ele com base na câmera
 
 # Inicia o jogo
 Jogo()
