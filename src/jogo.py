@@ -182,9 +182,12 @@ class Jogo:
         if self.jogador_x > 256: 
             self.fase  = self.fase + 1 # Aumenta a fase
             self.jogador_x = 0  # Volta o personagem para a esquerda da tela
-        
+            
+        if self.jogador_x < 0 and self.fase > 0:
+            self.fase -= 1
+            self.jogador_x = 256
         x = 0
-        y = 128
+        y = 0
         tilemap = 0
         u = self.fase * 256 # Cada fase tem 256 de largura no tilemap
         v = 0
@@ -201,7 +204,7 @@ class Jogo:
         pyxel.cls(2) #Faz o background ser roxo
 
         self.desenha_cenario()
-
+        
         pyxel.blt(int(self.jogador_x), int(self.jogador_y), 0, 8, 16, 16, 16, 2) #desenha o mário e atualiza ele com base na câmera
 
 # Inicia o jogo
