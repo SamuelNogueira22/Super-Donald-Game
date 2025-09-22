@@ -8,14 +8,24 @@ TILE_SIZE = 8       # cada tile tem 8 pixels
 FASE_SIZE = 32      # sala tem 32 tiles de lado
 FASE_PIXELS = FASE_SIZE * TILE_SIZE
 
+class Moeda:
+    def __init__(self, x, y):
+        self.x = x  # Posição no MUNDO
+        self.y = y  # Posição no MUNDO
+        self.largura = 8
+        self.altura = 8
+        self.ativa = True # Para saber se ela deve ser desenhada e coletada
+
 class Jogo:
     def __init__(self):
         # Inicialização do Pyxel
         
         pyxel.init(256, 256, title="Mario Adventures", fps=60)
         pyxel.load("../assets/jogo.pyxres")
-        self.fase = 0
-
+        
+        self.fase_x = 0
+        self.fase_y = 0
+        
         # Posição e física
         
         self.jogador_x = 25
@@ -41,10 +51,77 @@ class Jogo:
         # Coyote time (permite pular logo após sair do chão)
         self.coyote_time_max = 6            # frames de tolerância
         self.coyote_timer = 0
+        #Inicindo lista de Moedas
+        self.moedas_coletadas = 0
+        self.total_de_moedas = 0 # Um contador para o total
+        self.jogo_ganho = False
+        
+        self.moedas_por_fase = {
+        (0, 0): [ #Moeda 1
+            Moeda(100, 150),
+        ],
+        
+        (1, 0): [  #Moeda 2
+            Moeda(50, 110),
+        ],
+        
+        (2,0): [ #Moeda 3
+            Moeda(145, 59)
+        ],
+        
+        (3,0): [ #Moeda 4
+            Moeda(140, 110)
+        ],
+        
+        (4,0): [ #Moeda 5
+            Moeda(115, 56)
+        ],
+        
+        (5,0): [ #Moeda 6
+            Moeda(150, 100)
+        ],
+        
+        (6,0): [ #Moeda 7
+            Moeda(120, 66)
+        ],
+        
+        (7,0): [ #Moeda 8
+            Moeda(140, 56)
+        ],
+        
+        (1,1): [ #Moeda 9
+            Moeda(160, 166)
+        ],
+        
+        (2,1): [ #Moeda 10
+            Moeda(90, 136)
+        ],
+        
+        (3,1): [ #Moeda 11
+            Moeda(130, 96)
+        ],
+        
+        (4,1): [ #Moeda 12
+            Moeda(130, 56)
+        ],
+        
+        (5,1): [ #Moeda 13
+            Moeda(120, 116)
+        ],
+        
+        (6,1): [ #Moeda 14
+            Moeda(140, 146)
+        ],
+        
+        (7,1): [ #Moeda 15
+            Moeda(160, 166)
+        ]
+    }
 
-        #Câmera
-        self.camera_x = 0
-        self.camera_y = 0
+    # Conta o total de moedas no jogo para a condição de vitória
+        for lista in self.moedas_por_fase.values():
+            self.total_de_moedas += len(lista)
+
         
         # Música
         pyxel.playm(0, loop=True)
@@ -175,29 +252,71 @@ class Jogo:
         # Atualiza o estado anterior da tecla de pulo
         self.jump_key_prev = jump_now
         
+        if self.jogo_ganho:
+            return
+        
+        fase_atual = (self.fase_x, self.fase_y)
+        if fase_atual in self.moedas_por_fase:
+            lista_moedas_da_fase = self.moedas_por_fase[fase_atual]
+
+            for moeda in lista_moedas_da_fase:
+                if moeda.ativa:
+                # Colisão direta entre as coordenadas da tela
+                    if (
+                        self.jogador_x < moeda.x + moeda.largura and
+                        self.jogador_x + self.jogador_largura > moeda.x and
+                        self.jogador_y < moeda.y + moeda.altura and
+                        self.jogador_y + self.jogador_altura > moeda.y
+                    ):
+                        moeda.ativa = False
+                        self.moedas_coletadas += 1
+                        pyxel.play(3, 8)
+
+                        if self.moedas_coletadas >= self.total_de_moedas:
+                            self.jogo_ganho = True
+                        
 
     def desenha_cenario(self):
+    # Lembre-se de ter self.fase_x = 0 e self.fase_y = 0 no seu __init__
 
-        # Descobre a fase do jogador e ajusta a posição
-        if self.jogador_x > 256: 
-            self.fase  = self.fase + 1 # Aumenta a fase
-            self.jogador_x = 0  # Volta o personagem para a esquerda da tela
-            
-        if self.jogador_x < 0 and self.fase > 0:
-            self.fase -= 1
-            self.jogador_x = 256
+    # ---- LÓGICA DE TRANSIÇÃO HORIZONTAL (EIXO X) ----
+    # Quando o jogador sai pela direita, avança a fase X
+        if self.jogador_x >= 256: 
+            self.fase_x += 1
+            self.jogador_x = 0  # Reposiciona o jogador na esquerda
+        
+    # Quando o jogador volta pela esquerda, retorna a fase X
+        if self.jogador_x < 0 and self.fase_x > 0:
+            self.fase_x -= 1
+            self.jogador_x = 255 # Reposiciona o jogador na direita
+
+    # ---- LÓGICA DE TRANSIÇÃO VERTICAL (EIXO Y) ----
+    # Quando o jogador cai da tela, avança a fase Y
+        if self.jogador_y >= 256: 
+            self.fase_y += 1
+            self.jogador_y = 0  # Reposiciona o jogador no topo da nova tela
+        
+    # (Opcional) Se precisar que o jogador volte para a tela de cima
+        if self.jogador_y < 0 and self.fase_y > 0:
+            self.fase_y -= 1
+            self.jogador_y = 255 # Reposiciona o jogador na base da tela anterior
+
+    # --- DESENHO DO CENÁRIO ---
+    # Parâmetros básicos para o bltm
         x = 0
         y = 0
         tilemap = 0
-        u = self.fase * 256 # Cada fase tem 256 de largura no tilemap
-        v = 0
         largura = 256
         altura = 256
-
-
-        pyxel.bltm(x,y,tilemap,u,v,largura,altura) #desenha cenário
-        #print     (x,y,tilemap,u,v,largura,altura)
-        #print(u)
+    
+    # 'u' (deslocamento horizontal) é calculado pela fase_x
+        u = self.fase_x * 256 
+    
+    # 'v' (deslocamento vertical) é calculado pela fase_y
+        v = self.fase_y * 256
+    
+    # Desenha o cenário na tela usando as coordenadas 'u' e 'v' calculadas
+        pyxel.bltm(x, y, tilemap, u, v, largura, altura)
         
     
     def draw(self):
@@ -205,7 +324,30 @@ class Jogo:
 
         self.desenha_cenario()
         
-        pyxel.blt(int(self.jogador_x), int(self.jogador_y), 0, 8, 16, 16, 16, 2) #desenha o mário e atualiza ele com base na câmera
+        fase_atual = (self.fase_x, self.fase_y)
+        if fase_atual in self.moedas_por_fase:
+            lista_moedas_da_fase = self.moedas_por_fase[fase_atual]
+
+            for moeda in lista_moedas_da_fase:
+                if moeda.ativa:
+                    # Desenha a moeda diretamente em sua coordenada (x, y) na tela
+                    pyxel.blt(moeda.x, moeda.y, 1, 32, 0, 16, 16, 3)
+
+        
+        pyxel.blt(int(self.jogador_x), int(self.jogador_y), 0, 8, 16, 16, 16, 2) #desenha o mário
+        
+        #Mensagem de Vitória
+        if self.jogo_ganho:
+        # Centraliza o texto na tela
+            texto = "VOCE VENCEU!"
+            x_texto = (pyxel.width - len(texto) * 4) / 2
+            y_texto = pyxel.height / 2 - 4
+    
+        # Desenha um fundo preto para o texto ficar mais legível
+            pyxel.rect(x_texto - 4, y_texto - 4, len(texto) * 4 + 8, 16, 0)
+    
+        # Desenha o texto em si
+            pyxel.text(x_texto, y_texto, texto, 7) # Cor 7 = Branco
 
 # Inicia o jogo
 Jogo()
