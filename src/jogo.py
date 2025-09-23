@@ -94,11 +94,11 @@ class Jogo:
         ],
         
         (2,1): [ #Moeda 10
-            Moeda(90, 136)
+            Moeda(90, 146)
         ],
         
         (3,1): [ #Moeda 11
-            Moeda(130, 96)
+            Moeda(140, 96)
         ],
         
         (4,1): [ #Moeda 12
@@ -122,6 +122,8 @@ class Jogo:
         for lista in self.moedas_por_fase.values():
             self.total_de_moedas += len(lista)
 
+        self.tempo_vitoria = 0 #Variavel simpes pra controlar o tempo que a mensagem de vitoria aparece (5 segundos)        
+        self.reset()
         
         # Música
         pyxel.playm(0, loop=True)
@@ -173,6 +175,12 @@ class Jogo:
 
     
     def update(self):
+        if self.jogo_ganho:
+        # Checa se já passaram 180 frames (3 segundos) desde a vitória
+            if pyxel.frame_count > self.tempo_vitoria + 180:
+                self.reset() # Reseta o jogo
+            return # Trava todo o resto do update (jogador, física, etc.)
+        
         # --- Entrada: leitura de tecla de pulo (detecção de borda) ---
         jump_now = pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_UP)
         # Detecta press (borda de subida). Isso não depende de btnp.
@@ -274,10 +282,15 @@ class Jogo:
 
                         if self.moedas_coletadas >= self.total_de_moedas:
                             self.jogo_ganho = True
+                            self.tempo_vitoria = pyxel.frame_count # Guarda o frame exato da vitória
+                            #Para versão futura: Toca uma música de vitória por 3 segundos
+                            # pyxel.playm(1, loop=False) 
+                            return # Para o resto do update
                         
-
+#----------------------------------------------------------------------------------------------------------------------------------------------------------
+    #Lógica de deslocamento de fases (transição entre telas/tiles)
+#----------------------------------------------------------------------------------------------------------------------------------------------------------
     def desenha_cenario(self):
-    # Lembre-se de ter self.fase_x = 0 e self.fase_y = 0 no seu __init__
 
     # ---- LÓGICA DE TRANSIÇÃO HORIZONTAL (EIXO X) ----
     # Quando o jogador sai pela direita, avança a fase X
@@ -302,7 +315,6 @@ class Jogo:
             self.jogador_y = 255 # Reposiciona o jogador na base da tela anterior
 
     # --- DESENHO DO CENÁRIO ---
-    # Parâmetros básicos para o bltm
         x = 0
         y = 0
         tilemap = 0
@@ -318,6 +330,98 @@ class Jogo:
     # Desenha o cenário na tela usando as coordenadas 'u' e 'v' calculadas
         pyxel.bltm(x, y, tilemap, u, v, largura, altura)
         
+    #----------------------------------------------------------------------------------------------------------------------------------------------------------
+    #Lógica de reset: cumpriu os objetivos = reinicia a partida automaticamente
+    #----------------------------------------------------------------------------------------------------------------------------------------------------------
+    
+    def reset(self):
+        """Reseta o estado do jogo para uma nova partida."""
+        print("--- RESETANDO O JOGO ---") 
+    
+    # Reseta a posição do jogador e da câmera
+        self.fase_x = 0
+        self.fase_y = 0
+        self.jogador_x = 25
+        self.jogador_y = 224
+        self.jogador_vy = 0.0
+        self.esta_no_chao = False
+    
+    # Reseta as moedas e a condição de vitória
+        self.moedas_coletadas = 0
+        self.total_de_moedas = 0
+        self.jogo_ganho = False
+        self.tempo_vitoria = 0 #Variavel simpes pra controlar o tempo que a mensagem de vitoria aparece (5 segundos)
+
+    # Recria o dicionário de moedas do zero, restaurando todas elas onde estavam antes
+        self.moedas_por_fase = {
+        (0, 0): [ #Moeda 1
+            Moeda(100, 150),
+        ],
+        
+        (1, 0): [  #Moeda 2
+            Moeda(50, 110),
+        ],
+        
+        (2,0): [ #Moeda 3
+            Moeda(145, 59)
+        ],
+        
+        (3,0): [ #Moeda 4
+            Moeda(140, 110)
+        ],
+        
+        (4,0): [ #Moeda 5
+            Moeda(115, 56)
+        ],
+        
+        (5,0): [ #Moeda 6
+            Moeda(150, 100)
+        ],
+        
+        (6,0): [ #Moeda 7
+            Moeda(120, 66)
+        ],
+        
+        (7,0): [ #Moeda 8
+            Moeda(140, 56)
+        ],
+        
+        (1,1): [ #Moeda 9
+            Moeda(160, 166)
+        ],
+        
+        (2,1): [ #Moeda 10
+            Moeda(90, 136)
+        ],
+        
+        (3,1): [ #Moeda 11
+            Moeda(130, 96)
+        ],
+        
+        (4,1): [ #Moeda 12
+            Moeda(130, 56)
+        ],
+        
+        (5,1): [ #Moeda 13
+            Moeda(120, 116)
+        ],
+        
+        (6,1): [ #Moeda 14
+            Moeda(140, 146)
+        ],
+        
+        (7,1): [ #Moeda 15
+            Moeda(160, 166)
+        ]
+    }
+
+    # Recalcula o total de moedas
+        for lista in self.moedas_por_fase.values():
+            self.total_de_moedas += len(lista)
+        
+    #---------------------------------------------------------------------------------------------------------------------------------------------------------
+    #função de desenho: mapeia e insere jogador, moedas e mensagem de vitória na tela
+    #---------------------------------------------------------------------------------------------------------------------------------------------------------
     
     def draw(self):
         pyxel.cls(2) #Faz o background ser roxo
@@ -338,16 +442,38 @@ class Jogo:
         
         #Mensagem de Vitória
         if self.jogo_ganho:
-        # Centraliza o texto na tela
-            texto = "VOCE VENCEU!"
+            texto = "PARABÉNS, VOCE VENCEU!"
             x_texto = (pyxel.width - len(texto) * 4) / 2
             y_texto = pyxel.height / 2 - 4
-    
-        # Desenha um fundo preto para o texto ficar mais legível
             pyxel.rect(x_texto - 4, y_texto - 4, len(texto) * 4 + 8, 16, 0)
-    
-        # Desenha o texto em si
-            pyxel.text(x_texto, y_texto, texto, 7) # Cor 7 = Branco
+            pyxel.text(x_texto, y_texto, texto, 7)
+            
+        #Exibição do contador de moedas na tela do jogo
+        texto_contador = f"{self.moedas_coletadas}/{self.total_de_moedas}"
 
+        # Posição do texto no canto superior esquerdo da tela
+        pos_x_texto = 5
+        pos_y_texto = 5
+
+        # Desenha uma "sombra" preta para o texto
+        pyxel.text(pos_x_texto + 1, pos_y_texto + 1, texto_contador, 0)
+        # Desenha o texto principal em branco
+        pyxel.text(pos_x_texto, pos_y_texto, texto_contador, 7)
+
+        # Calcula a posição do ícone da moeda, para que ele apareça logo depois do texto
+        pos_x_icone = 25
+        pos_y_icone = pos_y_texto - 7
+
+
+        # Desenha o ícone da moeda com o tamanho de 16x16
+        pyxel.blt(
+            pos_x_icone,
+            pos_y_icone,  # Posição Y ajustada para o ícone maior
+            1,                
+            32, 0,            
+            16, 16,           # Largura e Altura de 16x16
+            3)                 # Cor transparente (Limpa o fundo verde do sprite)
+        
+            
 # Inicia o jogo
 Jogo()
