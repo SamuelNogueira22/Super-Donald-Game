@@ -16,6 +16,32 @@ class Moeda:
         self.altura = 8
         self.ativa = True # Para saber se ela deve ser desenhada e coletada
 
+class Inimigo:
+    def __init__(self, x, y, tipo, raio_movimento=20):
+        self.x_inicial = x
+        self.y = y
+        self.x = x
+        self.largura = 16
+        self.altura = 16
+        self.tipo = tipo
+        self.raio_movimento = raio_movimento
+        self.velocidade_movimento = 1.5
+        
+        self.banco_imagem = 1
+        if self.tipo == "cogumelo_vermelho": self.u, self.v = (0, 16)
+        elif self.tipo == "cogumelo_azul": self.u, self.v = (0, 32)
+        elif self.tipo == "bomba": self.u, self.v = (16, 32)
+
+    def update(self):
+        if self.tipo == "bomba" or self.tipo == "cogumelo_azul" or self.tipo == "cogumelo_vermelho":
+            self.x = self.x_inicial + pyxel.sin(pyxel.frame_count * self.velocidade_movimento) * self.raio_movimento
+
+    def draw(self, camera_x, camera_y):
+        # Calcula a posição correta para desenhar na tela
+
+        pyxel.blt(int(self.x), int(self.y), self.banco_imagem, self.u, self.v, self.largura, self.altura, 3)   
+    
+    
 class Jogo:
     def __init__(self):
         # Inicialização do Pyxel
@@ -179,7 +205,26 @@ class Jogo:
         # Checa se já passaram 180 frames (3 segundos) desde a vitória
             if pyxel.frame_count > self.tempo_vitoria + 180:
                 self.reset() # Reseta o jogo
+                return
+        if self.jogador_morto:
+            if pyxel.frame_count > self.tempo_morte + 120: self.reset()
             return # Trava todo o resto do update (jogador, física, etc.)
+        
+        fase_atual = (self.fase_x, self.fase_y)
+        inimigos_nesta_fase = self.inimigos_por_fase.get(fase_atual, [])
+        
+        for inimigo in inimigos_nesta_fase:
+            inimigo.update()
+        
+        # Checa colisão
+            jx, jy = self.jogador_x, self.jogador_y
+            if (jx < inimigo.x + inimigo.largura and
+                jx + self.jogador_largura > inimigo.x and
+                jy < inimigo.y + inimigo.altura and
+                jy + self.jogador_altura > inimigo.y):
+                self.jogador_morto = True
+                self.tempo_morte = pyxel.frame_count
+                return
         
         # --- Entrada: leitura de tecla de pulo (detecção de borda) ---
         jump_now = pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_UP)
@@ -352,6 +397,9 @@ class Jogo:
         self.jogo_ganho = False
         self.tempo_vitoria = 0 #Variavel simpes pra controlar o tempo que a mensagem de vitoria aparece (5 segundos)
 
+        self.jogador_morto = False
+        self.tempo_morte = 0
+        
     # Recria o dicionário de moedas do zero, restaurando todas elas onde estavam antes
         self.moedas_por_fase = {
         (0, 0): [ #Moeda 1
@@ -395,7 +443,7 @@ class Jogo:
         ],
         
         (3,1): [ #Moeda 11
-            Moeda(130, 96)
+            Moeda(150, 86)
         ],
         
         (4,1): [ #Moeda 12
@@ -413,6 +461,21 @@ class Jogo:
         (7,1): [ #Moeda 15
             Moeda(160, 166)
         ]
+    }
+        
+        self.inimigos_por_fase = {
+        (0, 0): [ Inimigo(155, 158, "bomba") ],
+        (2, 0): [ Inimigo(155, 128, "cogumelo_azul") ],
+        (3, 0): [ Inimigo(155, 225, "cogumelo_vermelho") ],
+        (5, 0): [ Inimigo(150, 225, "bomba") ],
+        (6, 0): [ Inimigo(70, 225, "cogumelo_vermelho") ],
+        (7, 0): [ Inimigo(70, 225, "cogumelo_azul") ],
+        (1, 1): [ Inimigo(130, 215, "bomba") ],
+        (3, 1): [ Inimigo(130, 160, "cogumelo_vermelho") ],
+        (4, 1): [ Inimigo(100, 215, "cogumelo_azul") ],
+        (5, 1): [ Inimigo(100, 135, "bomba", raio_movimento=1)],
+        (6, 1): [ Inimigo(130, 200, "cogumelo_vermelho") ],
+        
     }
 
     # Recalcula o total de moedas
@@ -438,11 +501,12 @@ class Jogo:
                     pyxel.blt(moeda.x, moeda.y, 1, 32, 0, 16, 16, 3)
 
         
-        pyxel.blt(int(self.jogador_x), int(self.jogador_y), 0, 8, 16, 16, 16, 2) #desenha o mário
+        if not self.jogador_morto:
+            pyxel.blt(int(self.jogador_x), int(self.jogador_y), 0, 8, 16, 16, 16, 2) # Desenha o jogador
         
         #Mensagem de Vitória
         if self.jogo_ganho:
-            texto = "PARABÉNS, VOCE VENCEU!"
+            texto = "PARABENS, VOCE VENCEU!"
             x_texto = (pyxel.width - len(texto) * 4) / 2
             y_texto = pyxel.height / 2 - 4
             pyxel.rect(x_texto - 4, y_texto - 4, len(texto) * 4 + 8, 16, 0)
@@ -474,6 +538,19 @@ class Jogo:
             16, 16,           # Largura e Altura de 16x16
             3)                 # Cor transparente (Limpa o fundo verde do sprite)
         
+        camera_x = self.fase_x * 256
+        camera_y = self.fase_y * 256
+        fase_atual = (self.fase_x, self.fase_y)
+        for inimigo in self.inimigos_por_fase.get(fase_atual, []):
+            inimigo.draw(camera_x, camera_y)
+        
+        
+        if self.jogador_morto:
+            texto = "VOCE PERDEU!"
+            x_texto = (pyxel.width - len(texto) * 4) / 2
+            y_texto = pyxel.height / 2 - 4
+            pyxel.rect(x_texto - 4, y_texto - 4, len(texto) * 4 + 8, 16, 0)
+            pyxel.text(x_texto, y_texto, texto, 8)
             
 # Inicia o jogo
 Jogo()
