@@ -3,6 +3,12 @@
 
 import pyxel
 
+#Estados de Cena
+Scene_title = 0
+Scene_play = 1
+Scene_tutorial = 2
+Scene_credits = 3
+
 # Configurações
 TILE_SIZE = 8       # cada tile tem 8 pixels
 FASE_SIZE = 32      # sala tem 32 tiles de lado
@@ -49,8 +55,30 @@ class Jogo:
         pyxel.init(256, 256, title="Mario Adventures", fps=60)
         pyxel.load("../assets/jogo.pyxres")
         
+        #Aqui é possivel carregar a partitura da trilha sonora do mario original em formatio MML
+        parte1_mml = "T100>e16e8e8c16e8g4<g4>c8.<g8.e8.a8b8a+16a8g16.>e16g16.a8f16g8e8c16d16<b8.>c8.<g8.e8.a8b8a+16a8g16.>e16g16.a8f16g8e8c16d16<b4&b16>g16f+16f16d+8e8<g+16a16>c8<a16>c16d8.g16f+16f16d+8e8>c8c16c4.<g16f+16f16d+8e8<g+16a16>c8<a16>c16d8.d+8.d8.c2&c8g16f+16f16d+8e8<g+16a16>c8<a16>c16d8.g16f+16f16d+8e8>c8c16c4.<g16f+16f16d+8e8<g+16a16>c8<a16>c16d8.d+8.d8.c2"
+        parte2_mml = "<d16d8d8d16d8g4<g4>g8.e8.c8.f8g8f+16f8c16.>c16e16.f8d16e8c8<a16b16g8.g8.e8.c8.f8g8f+16f8c16.>c16e16.f8d16e8c8<a16b16g8.c8.g8.>c8<f8.>c16c16c16<f8c8.e8.g16>c4.&c16<g8c8.g8.>c8<f8.>c16c16c16<f8c8g+8.a+8.>c8.<g16g8c8c8.g8.>c8<f8.>c16c16c16<f8c8.g8.g16>c4.&c16<g8c8.g8.>c8<f8.>c16c16c16<f8c8g+8.a+8.>c8."
+
+        # Pyxel tem limitação de tamanho para cargera MML, por isso dividi em dois
+        pyxel.sounds[0].mml(parte1_mml)
+        pyxel.sounds[1].mml(parte2_mml)
+
+        # Cria a MÚSICA 0, que toca o SOM 0 e DEPOIS o SOM 1 em sequência
+        pyxel.musics[0].set([0, 1], [], [], [])
+
+        # Toca a música
+        pyxel.playm(0, loop=True)
+        
+        #Efeitos sonoros
+        som_moeda_mml = "t60 v12 o5 l16 b->e"
+        som_vitoria_mml = "t120 v12 o5 l16 gg>c<b-ag>c<b-agf4"
+        som_morte_mml = "t120 v12 o5 l8 c>g<f+fe-e<b-4"
         self.fase_x = 0
         self.fase_y = 0
+        
+        pyxel.sounds[8].mml(som_moeda_mml)    # Som da Moeda no espaço 8
+        pyxel.sounds[9].mml(som_vitoria_mml)   # Som da Vitória no espaço 9
+        pyxel.sounds[10].mml(som_morte_mml)   # Som da Morte no espaço 10
         
         # Posição e física
         
@@ -81,6 +109,13 @@ class Jogo:
         self.moedas_coletadas = 0
         self.total_de_moedas = 0 # Um contador para o total
         self.jogo_ganho = False
+        
+        self.scene = Scene_title
+        #Menu
+        
+        self.menu_options = ["Jogar", "Tutorial", "Creditos", "Sair"]
+        self.menu_idx = 0
+        self.enter_hold = 0
         
         self.moedas_por_fase = {
         (0, 0): [ #Moeda 1
@@ -151,9 +186,6 @@ class Jogo:
         self.tempo_vitoria = 0 #Variavel simpes pra controlar o tempo que a mensagem de vitoria aparece (5 segundos)        
         self.reset()
         
-        # Música
-        pyxel.playm(0, loop=True)
-
         # Start
         pyxel.run(self.update, self.draw)
 
@@ -201,13 +233,48 @@ class Jogo:
 
     
     def update(self):
+        
+        '''''''''''''''Tela de Menu'''''''''''''''''
+        if self.scene == Scene_title:
+            #Setas para navegar o menu e enter pra confirmar
+            if pyxel.btnp(pyxel.KEY_UP):
+                self.menu_idx = (self.menu_idx - 1) % len(self.menu_options)
+            
+            if pyxel.btnp(pyxel.KEY_DOWN):
+                self.menu_idx = (self.menu_idx + 1) % len(self.menu_options)
+                    
+            if pyxel.btnp(pyxel.KEY_RETURN):
+                opt = self.menu_options[self.menu_idx]
+                if opt == "Jogar":
+                    self.scene = Scene_play
+                    pyxel.playm(0, loop=True)
+                elif opt == "Tutorial":
+                    self.scene = Scene_tutorial
+                elif opt == "Creditos":
+                    self.scene = Scene_credits
+                elif opt == "Sair":
+                    pyxel.quit()
+            return
+
+            # Tutorial/Creditos: Enter volta ao menu
+        if self.scene in (Scene_tutorial, Scene_credits):
+            if pyxel.btnp(pyxel.KEY_RETURN):
+                self.scene = Scene_title
+            return
+        
+        '''''''''''''''Tela de Jogo'''''''''''''''''
         if self.jogo_ganho:
         # Checa se já passaram 180 frames (3 segundos) desde a vitória
             if pyxel.frame_count > self.tempo_vitoria + 180:
+                pyxel.stop() #Para a música de fundo
+                pyxel.play(0, 9) #Toca o som de vitória
                 self.reset() # Reseta o jogo
                 return
         if self.jogador_morto:
-            if pyxel.frame_count > self.tempo_morte + 120: self.reset()
+            if pyxel.frame_count > self.tempo_morte + 120:
+                pyxel.stop() #Para a música de fundo
+                pyxel.play(0, 10) #Toca o som de morte 
+                self.reset()
             return # Trava todo o resto do update (jogador, física, etc.)
         
         fase_atual = (self.fase_x, self.fase_y)
@@ -323,13 +390,11 @@ class Jogo:
                     ):
                         moeda.ativa = False
                         self.moedas_coletadas += 1
-                        pyxel.play(3, 8)
+                        pyxel.play(1, 8) # Toca o som da moeda
 
                         if self.moedas_coletadas >= self.total_de_moedas:
                             self.jogo_ganho = True
-                            self.tempo_vitoria = pyxel.frame_count # Guarda o frame exato da vitória
-                            #Para versão futura: Toca uma música de vitória por 3 segundos
-                            # pyxel.playm(1, loop=False) 
+                            self.tempo_vitoria = pyxel.frame_count # Guarda o frame exato da vitória 
                             return # Para o resto do update
                         
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -481,12 +546,68 @@ class Jogo:
     # Recalcula o total de moedas
         for lista in self.moedas_por_fase.values():
             self.total_de_moedas += len(lista)
-        
+        pyxel.playm(0, loop=True)
     #---------------------------------------------------------------------------------------------------------------------------------------------------------
     #função de desenho: mapeia e insere jogador, moedas e mensagem de vitória na tela
     #---------------------------------------------------------------------------------------------------------------------------------------------------------
     
     def draw(self):
+        if self.scene == Scene_title:
+            #Tela de Menu Simples
+            pyxel.cls(0)
+            titulo = "MARIO ADVENTURES"
+            hint = "Pressione ENTER para Jogar"
+            subt = "by Samuel Nogueira"
+            dica = "Setas: navegar | Enter: confirmar"
+            pyxel.text((pyxel.width - len(titulo)*4)//2, 90, titulo, 7)
+            pyxel.text((pyxel.width - len(subt)*4)//2, 105, subt, 6)
+
+            # Opções do menu (com destaque)
+            y0 = 130
+            for i, opt in enumerate(self.menu_options):
+                sel = (i == self.menu_idx)
+                txt = f"> {opt} <" if sel else f"  {opt}  "
+                cor = 10 if sel else 7
+                pyxel.text((pyxel.width - len(txt)*4)//2, y0 + i*10, txt, cor)
+
+            pyxel.text((pyxel.width - len(dica)*4)//2, 210, dica, 5)
+            return
+        
+        if self.scene == Scene_tutorial:
+            pyxel.cls(1)
+            linhas = [
+                "TUTORIAL",
+                "",
+                "- Setas: mover",
+                "- Espaco/Seta Cima: pular",
+                "- Colete todas as moedas",
+                "- Evite os inimigos",
+                "",
+                "ENTER para voltar",
+            ]
+            for i, ln in enumerate(linhas):
+                pyxel.text((pyxel.width - len(ln)*4)//2, 60 + i*12, ln, 7 if i==0 else 6)
+            return
+
+        if self.scene == Scene_credits:
+            pyxel.cls(1)
+            linhas = [
+                "CREDITOS",
+                "",
+                "Codigo e Level Design:",
+                "Samuel Nogueira",
+                "",
+                "Feito com Pyxel",
+                "",
+                "Jogo feito com propositos educacionais,",
+                " quaisquer semelhancas com a realidade sao mera coincidencia",
+                "",
+                "ENTER para voltar",
+            ]
+            for i, ln in enumerate(linhas):
+                pyxel.text((pyxel.width - len(ln)*4)//2, 60 + i*12, ln, 7 if i==0 else 6)
+            return
+        
         pyxel.cls(2) #Faz o background ser roxo
 
         self.desenha_cenario()
