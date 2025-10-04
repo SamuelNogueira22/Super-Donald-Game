@@ -8,6 +8,7 @@ Scene_title = 0
 Scene_play = 1
 Scene_tutorial = 2
 Scene_credits = 3
+Scene_pause = 4
 
 # Configurações
 TILE_SIZE = 8       # cada tile tem 8 pixels
@@ -116,6 +117,9 @@ class Jogo:
         self.menu_options = ["Jogar", "Tutorial", "Creditos", "Sair"]
         self.menu_idx = 0
         self.enter_hold = 0
+        #Menu de Pausa
+        self.pause_options = ["Continuar", "Menu"]
+        self.pause_idx = 0
         
         self.moedas_por_fase = {
         (0, 0): [ #Moeda 1
@@ -261,6 +265,31 @@ class Jogo:
             if pyxel.btnp(pyxel.KEY_RETURN):
                 self.scene = Scene_title
             return
+        
+        # ----------  PAUSE ----------
+        if self.scene == Scene_play and pyxel.btnp(pyxel.KEY_P):
+            self.scene = Scene_pause
+            self.pause_idx = 0
+            return  # não avança a lógica neste frame
+
+        if self.scene == Scene_pause:
+            # Alterna seleção (só 2 opções) com seta cima/baixo
+            if pyxel.btnp(pyxel.KEY_UP) or pyxel.btnp(pyxel.KEY_DOWN):
+                self.pause_idx = 1 - self.pause_idx
+            # P retoma rápido
+            if pyxel.btnp(pyxel.KEY_P):
+                self.scene = Scene_play
+                return
+            # Enter confirma
+            if pyxel.btnp(pyxel.KEY_RETURN):
+                opt = self.pause_options[self.pause_idx]
+                if opt == "Continuar":
+                    self.scene = Scene_play
+                else:  # "Menu"
+                    self.reset()
+                    self.scene = Scene_title
+                return
+            return  # congelado enquanto pausado
         
         '''''''''''''''Tela de Jogo'''''''''''''''''
         if self.jogo_ganho:
@@ -554,10 +583,11 @@ class Jogo:
     def draw(self):
         if self.scene == Scene_title:
             #Tela de Menu Simples
-            pyxel.cls(0)
-            titulo = "MARIO ADVENTURES"
+            #pyxel.cls(0)
+            pyxel.blt(0, 0, 2, 0, 0, 256, 256)
+            titulo = '' #"MARIO ADVENTURES"
             hint = "Pressione ENTER para Jogar"
-            subt = "by Samuel Nogueira"
+            subt =  ''#"by Samuel Nogueira"
             dica = "Setas: navegar | Enter: confirmar"
             pyxel.text((pyxel.width - len(titulo)*4)//2, 90, titulo, 7)
             pyxel.text((pyxel.width - len(subt)*4)//2, 105, subt, 6)
@@ -582,6 +612,7 @@ class Jogo:
                 "- Espaco/Seta Cima: pular",
                 "- Colete todas as moedas",
                 "- Evite os inimigos",
+                "- P: pausar",
                 "",
                 "ENTER para voltar",
             ]
@@ -672,6 +703,19 @@ class Jogo:
             y_texto = pyxel.height / 2 - 4
             pyxel.rect(x_texto - 4, y_texto - 4, len(texto) * 4 + 8, 16, 0)
             pyxel.text(x_texto, y_texto, texto, 8)
+            
+            
+        # ---------- PAUSA ----------
+        if self.scene == Scene_pause:
+            pyxel.rect(64, 86, 128, 84, 0)
+            pyxel.rectb(64, 86, 128, 84, 7)
+            pyxel.text(64 + (128 - 6*4)//2, 94, "PAUSA", 7)
+            for i, opt in enumerate(self.pause_options):
+                sel = (i == self.pause_idx)
+                txt = f"> {opt} <" if sel else f"  {opt}  "
+                cor = 10 if sel else 7
+                pyxel.text(64 + (128 - len(txt)*4)//2, 112 + i*14, txt, cor)
+            pyxel.text(72, 86+84-12, "Setas: mover  Enter: OK", 5)
             
 # Inicia o jogo
 Jogo()
