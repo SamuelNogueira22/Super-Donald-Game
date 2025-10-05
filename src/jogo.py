@@ -1,5 +1,8 @@
 # Mario Adventures Game
 # ''''''''Created by Samuel Nogueira''''''''
+from moeda import Moeda
+from inimigo import Inimigo
+from mola import Mola
 
 import pyxel
 
@@ -14,14 +17,6 @@ Scene_pause = 4
 TILE_SIZE = 8       # cada tile tem 8 pixels
 FASE_SIZE = 32      # sala tem 32 tiles de lado
 FASE_PIXELS = FASE_SIZE * TILE_SIZE
-
-class Moeda:
-    def __init__(self, x, y):
-        self.x = x  # Posição no MUNDO
-        self.y = y  # Posição no MUNDO
-        self.largura = 8
-        self.altura = 8
-        self.ativa = True # Para saber se ela deve ser desenhada e coletada
 
 class Inimigo:
     def __init__(self, x, y, tipo, raio_movimento=20):
@@ -371,7 +366,7 @@ class Jogo:
 
         elif self.jogador_vy < 0:
             # Subindo: checa a linha logo acima da cabeça
-            if self.colisao_vertical_pixels(int(self.jogador_y - 1)):
+            if self.fase_y == 0 and self.colisao_vertical_pixels(int(self.jogador_y - 1)):
                 self.jogador_vy = 0
                 self.corrige_posicao_y(subindo=True)
 
@@ -425,7 +420,28 @@ class Jogo:
                             self.jogo_ganho = True
                             self.tempo_vitoria = pyxel.frame_count # Guarda o frame exato da vitória 
                             return # Para o resto do update
-                        
+        fase_atual = (self.fase_x, self.fase_y)
+        jogador_mundo_x = self.jogador_x + (self.fase_x * 256)
+        jogador_mundo_y = self.jogador_y + (self.fase_y * 256)
+        
+        for mola in self.molas_por_fase.get(fase_atual, []):
+            # Converte posição da mola (local à fase) para coordenadas do MUNDO
+            mola_mundo_x = mola.x + (self.fase_x * 256)
+            mola_mundo_y = mola.y + (self.fase_y * 256)
+
+            # Checa se o jogador está caindo sobre a mola (colisão AABB simplificada)
+            if (self.jogador_vy >= 0 and
+                jogador_mundo_x + self.jogador_largura > mola_mundo_x and
+                jogador_mundo_x < mola_mundo_x + mola.largura and
+                jogador_mundo_y + self.jogador_altura > mola_mundo_y and
+                jogador_mundo_y + self.jogador_altura < mola_mundo_y + 8):  # Tolerância para "pisar"
+
+                # Dá um super pulo!
+                self.jogador_vy = self.jump_force * 2.5  # Ajuste o '2.5' para mais ou menos altura
+                self.esta_no_chao = False
+                pyxel.play(3, 8)  # Som de "boing" (canal 3, som no slot 8)
+                break
+            
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
     #Lógica de deslocamento de fases (transição entre telas/tiles)
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -564,7 +580,7 @@ class Jogo:
         (5, 0): [ Inimigo(150, 225, "bomba") ],
         (6, 0): [ Inimigo(70, 225, "cogumelo_vermelho") ],
         (7, 0): [ Inimigo(70, 225, "cogumelo_azul") ],
-        (1, 1): [ Inimigo(130, 215, "bomba") ],
+        (1, 1): [ Inimigo(115, 215, "bomba") ],
         (3, 1): [ Inimigo(130, 160, "cogumelo_vermelho") ],
         (4, 1): [ Inimigo(100, 215, "cogumelo_azul") ],
         (5, 1): [ Inimigo(100, 135, "bomba", raio_movimento=1)],
@@ -576,6 +592,11 @@ class Jogo:
         for lista in self.moedas_por_fase.values():
             self.total_de_moedas += len(lista)
         pyxel.playm(0, loop=True)
+        
+        self.molas_por_fase = {
+        # Exemplo: uma mola na primeira tela (0, 0), no chão
+        (7, 1): [ Mola(x=200, y=216) ]
+    }
     #---------------------------------------------------------------------------------------------------------------------------------------------------------
     #função de desenho: mapeia e insere jogador, moedas e mensagem de vitória na tela
     #---------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -716,6 +737,10 @@ class Jogo:
                 cor = 10 if sel else 7
                 pyxel.text(64 + (128 - len(txt)*4)//2, 112 + i*14, txt, cor)
             pyxel.text(72, 86+84-12, "Setas: mover  Enter: OK", 5)
-            
+        camera_x = self.fase_x * 256
+        camera_y = self.fase_y * 256
+        fase_atual = (self.fase_x, self.fase_y)   
+        for mola in self.molas_por_fase.get(fase_atual, []):
+            mola.draw()
 # Inicia o jogo
 Jogo()
