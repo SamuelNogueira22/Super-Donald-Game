@@ -1,48 +1,59 @@
 # Mario Adventures Game
 # ''''''''Created by Samuel Nogueira''''''''
+
+# imports internos
+
 from moeda import Moeda
 from inimigo import Inimigo
 from mola import Mola
+from levels import build_level_structs
+from update import jogo_update
+import update
+from draw import jogo_draw
+import draw
+from reset import jogo_reset
+import reset
+
+# import da biblioteca
 
 import pyxel
 
-#Estados de Cena
+#Estados de Cena - Usados para apresentar telas do menu e jogo
 Scene_title = 0
 Scene_play = 1
 Scene_tutorial = 2
 Scene_credits = 3
 Scene_pause = 4
 
+# Tornar as constantes de cena disponíveis dentro do módulo update
+import update
+update.Scene_title = Scene_title
+update.Scene_play = Scene_play
+update.Scene_tutorial = Scene_tutorial
+update.Scene_credits = Scene_credits
+update.Scene_pause = Scene_pause
+
+#Constantes para draw
+
+draw.Scene_title = Scene_title
+draw.Scene_play = Scene_play
+draw.Scene_tutorial = Scene_tutorial
+draw.Scene_credits = Scene_credits
+draw.Scene_pause = Scene_pause
+
+#Constantes para reset
+
+reset.Scene_title = Scene_title
+reset.Scene_play = Scene_play
+reset.Scene_tutorial = Scene_tutorial
+reset.Scene_credits = Scene_credits
+reset.Scene_pause = Scene_pause
+
 # Configurações
 TILE_SIZE = 8       # cada tile tem 8 pixels
 FASE_SIZE = 32      # sala tem 32 tiles de lado
 FASE_PIXELS = FASE_SIZE * TILE_SIZE
 
-class Inimigo:
-    def __init__(self, x, y, tipo, raio_movimento=20):
-        self.x_inicial = x
-        self.y = y
-        self.x = x
-        self.largura = 16
-        self.altura = 16
-        self.tipo = tipo
-        self.raio_movimento = raio_movimento
-        self.velocidade_movimento = 1.5
-        
-        self.banco_imagem = 1
-        if self.tipo == "cogumelo_vermelho": self.u, self.v = (0, 16)
-        elif self.tipo == "cogumelo_azul": self.u, self.v = (0, 32)
-        elif self.tipo == "bomba": self.u, self.v = (16, 32)
-
-    def update(self):
-        if self.tipo == "bomba" or self.tipo == "cogumelo_azul" or self.tipo == "cogumelo_vermelho":
-            self.x = self.x_inicial + pyxel.sin(pyxel.frame_count * self.velocidade_movimento) * self.raio_movimento
-
-    def draw(self, camera_x, camera_y):
-        # Calcula a posição correta para desenhar na tela
-
-        pyxel.blt(int(self.x), int(self.y), self.banco_imagem, self.u, self.v, self.largura, self.altura, 3)   
-    
     
 class Jogo:
     def __init__(self):
@@ -84,6 +95,7 @@ class Jogo:
         self.esta_no_chao = False
 
         # Tamanho e cor de plataforma
+        
         self.cor_plataforma = 0  # Preto é a definição de solidez
         self.jogador_largura = 16
         self.jogador_altura = 16
@@ -101,6 +113,7 @@ class Jogo:
         # Coyote time (permite pular logo após sair do chão)
         self.coyote_time_max = 6            # frames de tolerância
         self.coyote_timer = 0
+        
         #Inicindo lista de Moedas
         self.moedas_coletadas = 0
         self.total_de_moedas = 0 # Um contador para o total
@@ -108,79 +121,20 @@ class Jogo:
         
         self.scene = Scene_title
         #Menu
-        
         self.menu_options = ["Jogar", "Tutorial", "Creditos", "Sair"]
         self.menu_idx = 0
         self.enter_hold = 0
+        
         #Menu de Pausa
+        
         self.pause_options = ["Continuar", "Menu"]
         self.pause_idx = 0
         
-        self.moedas_por_fase = {
-        (0, 0): [ #Moeda 1
-            Moeda(100, 150),
-        ],
-        
-        (1, 0): [  #Moeda 2
-            Moeda(50, 110),
-        ],
-        
-        (2,0): [ #Moeda 3
-            Moeda(145, 59)
-        ],
-        
-        (3,0): [ #Moeda 4
-            Moeda(140, 110)
-        ],
-        
-        (4,0): [ #Moeda 5
-            Moeda(115, 56)
-        ],
-        
-        (5,0): [ #Moeda 6
-            Moeda(150, 100)
-        ],
-        
-        (6,0): [ #Moeda 7
-            Moeda(120, 66)
-        ],
-        
-        (7,0): [ #Moeda 8
-            Moeda(140, 56)
-        ],
-        
-        (1,1): [ #Moeda 9
-            Moeda(160, 166)
-        ],
-        
-        (2,1): [ #Moeda 10
-            Moeda(90, 146)
-        ],
-        
-        (3,1): [ #Moeda 11
-            Moeda(140, 96)
-        ],
-        
-        (4,1): [ #Moeda 12
-            Moeda(130, 56)
-        ],
-        
-        (5,1): [ #Moeda 13
-            Moeda(120, 116)
-        ],
-        
-        (6,1): [ #Moeda 14
-            Moeda(140, 146)
-        ],
-        
-        (7,1): [ #Moeda 15
-            Moeda(160, 166)
-        ]
-    }
+        # Inicializa moedas, inimigos e molas a partir do módulo levels
+        self.moedas_por_fase, self.inimigos_por_fase, self.molas_por_fase = build_level_structs()
 
-    # Conta o total de moedas no jogo para a condição de vitória
-        for lista in self.moedas_por_fase.values():
-            self.total_de_moedas += len(lista)
+        # Conta o total de moedas no jogo para a condição de vitória
+        self.total_de_moedas = sum(len(lista) for lista in self.moedas_por_fase.values())
 
         self.tempo_vitoria = 0 #Variavel simpes pra controlar o tempo que a mensagem de vitoria aparece (5 segundos)        
         self.reset()
@@ -214,6 +168,7 @@ class Jogo:
     # -----------------------
     # Correção de posição
     # -----------------------
+    
     #Função pro jogador ficar sempre acima do bloco (na parte preta)
     def corrige_posicao_y(self, subindo: bool):
         
@@ -232,216 +187,7 @@ class Jogo:
 
     
     def update(self):
-        
-        '''''''''''''''Tela de Menu'''''''''''''''''
-        if self.scene == Scene_title:
-            #Setas para navegar o menu e enter pra confirmar
-            if pyxel.btnp(pyxel.KEY_UP):
-                self.menu_idx = (self.menu_idx - 1) % len(self.menu_options)
-            
-            if pyxel.btnp(pyxel.KEY_DOWN):
-                self.menu_idx = (self.menu_idx + 1) % len(self.menu_options)
-                    
-            if pyxel.btnp(pyxel.KEY_RETURN):
-                opt = self.menu_options[self.menu_idx]
-                if opt == "Jogar":
-                    self.scene = Scene_play
-                    pyxel.playm(0, loop=True)
-                elif opt == "Tutorial":
-                    self.scene = Scene_tutorial
-                elif opt == "Creditos":
-                    self.scene = Scene_credits
-                elif opt == "Sair":
-                    pyxel.quit()
-            return
-
-            # Tutorial/Creditos: Enter volta ao menu
-        if self.scene in (Scene_tutorial, Scene_credits):
-            if pyxel.btnp(pyxel.KEY_RETURN):
-                self.scene = Scene_title
-            return
-        
-        # ----------  PAUSE ----------
-        if self.scene == Scene_play and pyxel.btnp(pyxel.KEY_P):
-            self.scene = Scene_pause
-            self.pause_idx = 0
-            return  # não avança a lógica neste frame
-
-        if self.scene == Scene_pause:
-            # Alterna seleção (só 2 opções) com seta cima/baixo
-            if pyxel.btnp(pyxel.KEY_UP) or pyxel.btnp(pyxel.KEY_DOWN):
-                self.pause_idx = 1 - self.pause_idx
-            # P retoma rápido
-            if pyxel.btnp(pyxel.KEY_P):
-                self.scene = Scene_play
-                return
-            # Enter confirma
-            if pyxel.btnp(pyxel.KEY_RETURN):
-                opt = self.pause_options[self.pause_idx]
-                if opt == "Continuar":
-                    self.scene = Scene_play
-                else:  # "Menu"
-                    self.reset()
-                    self.scene = Scene_title
-                return
-            return  # congelado enquanto pausado
-        
-        '''''''''''''''Tela de Jogo'''''''''''''''''
-        if self.jogo_ganho:
-        # Checa se já passaram 180 frames (3 segundos) desde a vitória
-            if pyxel.frame_count > self.tempo_vitoria + 180:
-                pyxel.stop() #Para a música de fundo
-                pyxel.play(0, 9) #Toca o som de vitória
-                self.reset() # Reseta o jogo
-                return
-        if self.jogador_morto:
-            if pyxel.frame_count > self.tempo_morte + 120:
-                pyxel.stop() #Para a música de fundo
-                pyxel.play(0, 10) #Toca o som de morte 
-                self.reset()
-            return # Trava todo o resto do update (jogador, física, etc.)
-        
-        fase_atual = (self.fase_x, self.fase_y)
-        inimigos_nesta_fase = self.inimigos_por_fase.get(fase_atual, [])
-        
-        for inimigo in inimigos_nesta_fase:
-            inimigo.update()
-        
-        # Checa colisão
-            jx, jy = self.jogador_x, self.jogador_y
-            if (jx < inimigo.x + inimigo.largura and
-                jx + self.jogador_largura > inimigo.x and
-                jy < inimigo.y + inimigo.altura and
-                jy + self.jogador_altura > inimigo.y):
-                self.jogador_morto = True
-                self.tempo_morte = pyxel.frame_count
-                return
-        
-        # --- Entrada: leitura de tecla de pulo (detecção de borda) ---
-        jump_now = pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_UP)
-        # Detecta press (borda de subida). Isso não depende de btnp.
-        if jump_now and not self.jump_key_prev:
-            # Preenche o buffer: caso o player aperte pouco antes de pousar
-            self.jump_buffer_timer = self.jump_buffer_max
-
-        #Movimento horizontal
-        velocidade_h = 2
-        movimento_x = 0
-        
-        if pyxel.btn(pyxel.KEY_LEFT):
-            movimento_x = -velocidade_h
-        if pyxel.btn(pyxel.KEY_RIGHT):
-            movimento_x = velocidade_h
-
-        if movimento_x != 0:
-            if movimento_x < 0:
-                teste_x = int(self.jogador_x - 1)
-            else:
-                teste_x = int(self.jogador_x + self.jogador_largura)
-
-            if self.colisao_horizontal_pixels(teste_x):
-                movimento_x = 0
-
-        self.jogador_x += movimento_x
-
-        # ---gravidade ---
-        self.jogador_vy += self.gravidade
-        
-        if pyxel.btn(pyxel.KEY_DOWN):
-            self.jogador_vy += self.velocidade_pulo  # Acelera a descida se segurando ↓
-
-        # --- Colisão vertical---
-        if self.jogador_vy > 0:
-            # Caindo: checa a linha logo abaixo dos pés
-            
-            if self.colisao_vertical_pixels(int(self.jogador_y + self.jogador_altura)):
-                # Tocou o chão
-                
-                self.jogador_vy = 0
-                self.esta_no_chao = True
-                self.corrige_posicao_y(subindo=False)
-                
-            else:
-                self.esta_no_chao = False
-
-        elif self.jogador_vy < 0:
-            # Subindo: checa a linha logo acima da cabeça
-            if self.fase_y == 0 and self.colisao_vertical_pixels(int(self.jogador_y - 1)):
-                self.jogador_vy = 0
-                self.corrige_posicao_y(subindo=True)
-
-        # --- Atualiza timers de coyote e buffer com base no estado do chão ---
-        if self.esta_no_chao:
-            self.coyote_timer = self.coyote_time_max
-        else:
-            if self.coyote_timer > 0:
-                self.coyote_timer -= 1
-
-        # Se houver buffer de pulo, tenta executar o pulo enquanto houver coyote time
-        if self.jump_buffer_timer > 0 and self.coyote_timer > 0:
-            # Executa o pulo
-            self.jogador_vy = self.jump_force
-            self.esta_no_chao = False
-            # limpa timers/buffer
-            self.jump_buffer_timer = 0
-            self.coyote_timer = 0
-
-        # Aplica o movimento vertical final
-        self.jogador_y += self.jogador_vy
-
-        # Decrementa o buffer de pulo (se houver)
-        if self.jump_buffer_timer > 0:
-            self.jump_buffer_timer -= 1
-
-        # Atualiza o estado anterior da tecla de pulo
-        self.jump_key_prev = jump_now
-        
-        if self.jogo_ganho:
-            return
-        
-        fase_atual = (self.fase_x, self.fase_y)
-        if fase_atual in self.moedas_por_fase:
-            lista_moedas_da_fase = self.moedas_por_fase[fase_atual]
-
-            for moeda in lista_moedas_da_fase:
-                if moeda.ativa:
-                # Colisão direta entre as coordenadas da tela
-                    if (
-                        self.jogador_x < moeda.x + moeda.largura and
-                        self.jogador_x + self.jogador_largura > moeda.x and
-                        self.jogador_y < moeda.y + moeda.altura and
-                        self.jogador_y + self.jogador_altura > moeda.y
-                    ):
-                        moeda.ativa = False
-                        self.moedas_coletadas += 1
-                        pyxel.play(1, 8) # Toca o som da moeda
-
-                        if self.moedas_coletadas >= self.total_de_moedas:
-                            self.jogo_ganho = True
-                            self.tempo_vitoria = pyxel.frame_count # Guarda o frame exato da vitória 
-                            return # Para o resto do update
-        fase_atual = (self.fase_x, self.fase_y)
-        jogador_mundo_x = self.jogador_x + (self.fase_x * 256)
-        jogador_mundo_y = self.jogador_y + (self.fase_y * 256)
-        
-        for mola in self.molas_por_fase.get(fase_atual, []):
-            # Converte posição da mola (local à fase) para coordenadas do MUNDO
-            mola_mundo_x = mola.x + (self.fase_x * 256)
-            mola_mundo_y = mola.y + (self.fase_y * 256)
-
-            # Checa se o jogador está caindo sobre a mola (colisão AABB simplificada)
-            if (self.jogador_vy >= 0 and
-                jogador_mundo_x + self.jogador_largura > mola_mundo_x and
-                jogador_mundo_x < mola_mundo_x + mola.largura and
-                jogador_mundo_y + self.jogador_altura > mola_mundo_y and
-                jogador_mundo_y + self.jogador_altura < mola_mundo_y + 8):  # Tolerância para "pisar"
-
-                # Dá um super pulo!
-                self.jogador_vy = self.jump_force * 2.5  # Ajuste o '2.5' para mais ou menos altura
-                self.esta_no_chao = False
-                pyxel.play(3, 8)  # Som de "boing" (canal 3, som no slot 8)
-                break
-            
+        return jogo_update(self)
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
     #Lógica de deslocamento de fases (transição entre telas/tiles)
 #----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -464,7 +210,7 @@ class Jogo:
             self.fase_y += 1
             self.jogador_y = 0  # Reposiciona o jogador no topo da nova tela
         
-    # (Opcional) Se precisar que o jogador volte para a tela de cima
+    # Se precisar que o jogador volte para a tela de cima
         if self.jogador_y < 0 and self.fase_y > 0:
             self.fase_y -= 1
             self.jogador_y = 255 # Reposiciona o jogador na base da tela anterior
@@ -490,257 +236,13 @@ class Jogo:
     #----------------------------------------------------------------------------------------------------------------------------------------------------------
     
     def reset(self):
-        """Reseta o estado do jogo para uma nova partida."""
-        print("--- RESETANDO O JOGO ---") 
+        return jogo_reset(self)
     
-    # Reseta a posição do jogador e da câmera
-        self.fase_x = 0
-        self.fase_y = 0
-        self.jogador_x = 25
-        self.jogador_y = 224
-        self.jogador_vy = 0.0
-        self.esta_no_chao = False
-    
-    # Reseta as moedas e a condição de vitória
-        self.moedas_coletadas = 0
-        self.total_de_moedas = 0
-        self.jogo_ganho = False
-        self.tempo_vitoria = 0 #Variavel simpes pra controlar o tempo que a mensagem de vitoria aparece (5 segundos)
-
-        self.jogador_morto = False
-        self.tempo_morte = 0
-        
-    # Recria o dicionário de moedas do zero, restaurando todas elas onde estavam antes
-        self.moedas_por_fase = {
-        (0, 0): [ #Moeda 1
-            Moeda(100, 150),
-        ],
-        
-        (1, 0): [  #Moeda 2
-            Moeda(50, 110),
-        ],
-        
-        (2,0): [ #Moeda 3
-            Moeda(145, 59)
-        ],
-        
-        (3,0): [ #Moeda 4
-            Moeda(140, 110)
-        ],
-        
-        (4,0): [ #Moeda 5
-            Moeda(115, 56)
-        ],
-        
-        (5,0): [ #Moeda 6
-            Moeda(150, 100)
-        ],
-        
-        (6,0): [ #Moeda 7
-            Moeda(120, 66)
-        ],
-        
-        (7,0): [ #Moeda 8
-            Moeda(140, 56)
-        ],
-        
-        (1,1): [ #Moeda 9
-            Moeda(160, 166)
-        ],
-        
-        (2,1): [ #Moeda 10
-            Moeda(90, 136)
-        ],
-        
-        (3,1): [ #Moeda 11
-            Moeda(150, 86)
-        ],
-        
-        (4,1): [ #Moeda 12
-            Moeda(130, 56)
-        ],
-        
-        (5,1): [ #Moeda 13
-            Moeda(120, 116)
-        ],
-        
-        (6,1): [ #Moeda 14
-            Moeda(140, 146)
-        ],
-        
-        (7,1): [ #Moeda 15
-            Moeda(160, 166)
-        ]
-    }
-        
-        self.inimigos_por_fase = {
-        (0, 0): [ Inimigo(155, 158, "bomba") ],
-        (2, 0): [ Inimigo(155, 128, "cogumelo_azul") ],
-        (3, 0): [ Inimigo(155, 225, "cogumelo_vermelho") ],
-        (5, 0): [ Inimigo(150, 225, "bomba") ],
-        (6, 0): [ Inimigo(70, 225, "cogumelo_vermelho") ],
-        (7, 0): [ Inimigo(70, 225, "cogumelo_azul") ],
-        (1, 1): [ Inimigo(115, 215, "bomba") ],
-        (3, 1): [ Inimigo(130, 160, "cogumelo_vermelho") ],
-        (4, 1): [ Inimigo(100, 215, "cogumelo_azul") ],
-        (5, 1): [ Inimigo(100, 135, "bomba", raio_movimento=1)],
-        (6, 1): [ Inimigo(130, 200, "cogumelo_vermelho") ],
-        
-    }
-
-    # Recalcula o total de moedas
-        for lista in self.moedas_por_fase.values():
-            self.total_de_moedas += len(lista)
-        pyxel.playm(0, loop=True)
-        
-        self.molas_por_fase = {
-        # Exemplo: uma mola na primeira tela (0, 0), no chão
-        (7, 1): [ Mola(x=200, y=216) ]
-    }
     #---------------------------------------------------------------------------------------------------------------------------------------------------------
     #função de desenho: mapeia e insere jogador, moedas e mensagem de vitória na tela
     #---------------------------------------------------------------------------------------------------------------------------------------------------------
     
     def draw(self):
-        if self.scene == Scene_title:
-            #Tela de Menu Simples
-            #pyxel.cls(0)
-            pyxel.blt(0, 0, 2, 0, 0, 256, 256)
-            titulo = '' #"MARIO ADVENTURES"
-            hint = "Pressione ENTER para Jogar"
-            subt =  ''#"by Samuel Nogueira"
-            dica = "Setas: navegar | Enter: confirmar"
-            pyxel.text((pyxel.width - len(titulo)*4)//2, 90, titulo, 7)
-            pyxel.text((pyxel.width - len(subt)*4)//2, 105, subt, 6)
-
-            # Opções do menu (com destaque)
-            y0 = 130
-            for i, opt in enumerate(self.menu_options):
-                sel = (i == self.menu_idx)
-                txt = f"> {opt} <" if sel else f"  {opt}  "
-                cor = 10 if sel else 7
-                pyxel.text((pyxel.width - len(txt)*4)//2, y0 + i*10, txt, cor)
-
-            pyxel.text((pyxel.width - len(dica)*4)//2, 210, dica, 5)
-            return
-        
-        if self.scene == Scene_tutorial:
-            pyxel.cls(1)
-            linhas = [
-                "TUTORIAL",
-                "",
-                "- Setas: mover",
-                "- Espaco/Seta Cima: pular",
-                "- Colete todas as moedas",
-                "- Evite os inimigos",
-                "- P: pausar",
-                "",
-                "ENTER para voltar",
-            ]
-            for i, ln in enumerate(linhas):
-                pyxel.text((pyxel.width - len(ln)*4)//2, 60 + i*12, ln, 7 if i==0 else 6)
-            return
-
-        if self.scene == Scene_credits:
-            pyxel.cls(1)
-            linhas = [
-                "CREDITOS",
-                "",
-                "Codigo e Level Design:",
-                "Samuel Nogueira",
-                "",
-                "Feito com Pyxel",
-                "",
-                "Jogo feito com propositos educacionais,",
-                " quaisquer semelhancas com a realidade sao mera coincidencia",
-                "",
-                "ENTER para voltar",
-            ]
-            for i, ln in enumerate(linhas):
-                pyxel.text((pyxel.width - len(ln)*4)//2, 60 + i*12, ln, 7 if i==0 else 6)
-            return
-        
-        pyxel.cls(2) #Faz o background ser roxo
-
-        self.desenha_cenario()
-        
-        fase_atual = (self.fase_x, self.fase_y)
-        if fase_atual in self.moedas_por_fase:
-            lista_moedas_da_fase = self.moedas_por_fase[fase_atual]
-
-            for moeda in lista_moedas_da_fase:
-                if moeda.ativa:
-                    # Desenha a moeda diretamente em sua coordenada (x, y) na tela
-                    pyxel.blt(moeda.x, moeda.y, 1, 32, 0, 16, 16, 3)
-
-        
-        if not self.jogador_morto:
-            pyxel.blt(int(self.jogador_x), int(self.jogador_y), 0, 8, 16, 16, 16, 2) # Desenha o jogador
-        
-        #Mensagem de Vitória
-        if self.jogo_ganho:
-            texto = "PARABENS, VOCE VENCEU!"
-            x_texto = (pyxel.width - len(texto) * 4) / 2
-            y_texto = pyxel.height / 2 - 4
-            pyxel.rect(x_texto - 4, y_texto - 4, len(texto) * 4 + 8, 16, 0)
-            pyxel.text(x_texto, y_texto, texto, 7)
-            
-        #Exibição do contador de moedas na tela do jogo
-        texto_contador = f"{self.moedas_coletadas}/{self.total_de_moedas}"
-
-        # Posição do texto no canto superior esquerdo da tela
-        pos_x_texto = 5
-        pos_y_texto = 5
-
-        # Desenha uma "sombra" preta para o texto
-        pyxel.text(pos_x_texto + 1, pos_y_texto + 1, texto_contador, 0)
-        # Desenha o texto principal em branco
-        pyxel.text(pos_x_texto, pos_y_texto, texto_contador, 7)
-
-        # Calcula a posição do ícone da moeda, para que ele apareça logo depois do texto
-        pos_x_icone = 25
-        pos_y_icone = pos_y_texto - 7
-
-
-        # Desenha o ícone da moeda com o tamanho de 16x16
-        pyxel.blt(
-            pos_x_icone,
-            pos_y_icone,  # Posição Y ajustada para o ícone maior
-            1,                
-            32, 0,            
-            16, 16,           # Largura e Altura de 16x16
-            3)                 # Cor transparente (Limpa o fundo verde do sprite)
-        
-        camera_x = self.fase_x * 256
-        camera_y = self.fase_y * 256
-        fase_atual = (self.fase_x, self.fase_y)
-        for inimigo in self.inimigos_por_fase.get(fase_atual, []):
-            inimigo.draw(camera_x, camera_y)
-        
-        
-        if self.jogador_morto:
-            texto = "VOCE PERDEU!"
-            x_texto = (pyxel.width - len(texto) * 4) / 2
-            y_texto = pyxel.height / 2 - 4
-            pyxel.rect(x_texto - 4, y_texto - 4, len(texto) * 4 + 8, 16, 0)
-            pyxel.text(x_texto, y_texto, texto, 8)
-            
-            
-        # ---------- PAUSA ----------
-        if self.scene == Scene_pause:
-            pyxel.rect(64, 86, 128, 84, 0)
-            pyxel.rectb(64, 86, 128, 84, 7)
-            pyxel.text(64 + (128 - 6*4)//2, 94, "PAUSA", 7)
-            for i, opt in enumerate(self.pause_options):
-                sel = (i == self.pause_idx)
-                txt = f"> {opt} <" if sel else f"  {opt}  "
-                cor = 10 if sel else 7
-                pyxel.text(64 + (128 - len(txt)*4)//2, 112 + i*14, txt, cor)
-            pyxel.text(72, 86+84-12, "Setas: mover  Enter: OK", 5)
-        camera_x = self.fase_x * 256
-        camera_y = self.fase_y * 256
-        fase_atual = (self.fase_x, self.fase_y)   
-        for mola in self.molas_por_fase.get(fase_atual, []):
-            mola.draw()
-# Inicia o jogo
+        return jogo_draw(self)
+    # Inicia o jogo
 Jogo()
